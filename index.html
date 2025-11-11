@@ -27,7 +27,6 @@ html, body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* стабильная сцена */
 #stage {
   position: relative;
   width: 100vw;
@@ -38,7 +37,6 @@ html, body {
   overflow: hidden;
 }
 
-/* эффект света — пульсирующий при смене строк */
 #stage::before {
   content: "";
   position: absolute;
@@ -48,18 +46,15 @@ html, body {
   opacity: 0.08;
   transition: opacity 0.25s ease;
 }
-
-body.light #stage::before {
-  opacity: 0.65;
-}
+body.light #stage::before { opacity: 0.65; }
 
 #lyrics {
   position: relative;
   z-index: 2;
   text-align: center;
   font-size: clamp(1.8rem, 4vw, 3.2rem);
-  line-height: 1.1;
-  letter-spacing: 0.5px;
+  line-height: 1.3;
+  letter-spacing: 0.8px;
   user-select: none;
 }
 
@@ -69,7 +64,6 @@ body.light #stage::before {
   transform: scale(0.98);
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
-
 .line.active {
   opacity: 1;
   transform: scale(1);
@@ -80,20 +74,19 @@ body.light #stage::before {
   opacity: 0;
   transform: translateY(10px);
   filter: blur(4px);
+  margin-right: 6px; /* ← нормальный отступ между словами */
   transition: opacity 0.25s ease, transform 0.35s ease, filter 0.4s ease;
 }
-
 .word.on {
   opacity: 1;
   transform: translateY(0);
   filter: blur(0) drop-shadow(0 0 10px rgba(255,255,255,0.4));
 }
-
 body.light .word.on {
   filter: blur(0) drop-shadow(0 0 10px rgba(0,0,0,0.5));
 }
 
-/* переключение фона */
+/* фон */
 body.dark {
   background: var(--bg-dark);
   color: var(--fg-dark);
@@ -103,41 +96,42 @@ body.light {
   color: var(--fg-light);
 }
 
-/* кнопка */
+/* кнопка по центру */
 #controls {
   position: absolute;
-  top: 18px;
-  left: 18px;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inset: 0;
 }
 #startBtn {
-  padding: 10px 16px;
+  padding: 14px 22px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(255,255,255,0.12);
   color: inherit;
   font-weight: 700;
+  font-size: 1.1rem;
   cursor: pointer;
-  backdrop-filter: blur(6px);
-  transition: background 0.25s;
+  backdrop-filter: blur(8px);
+  transition: background 0.25s, transform 0.25s;
 }
-#startBtn:hover { background: rgba(255,255,255,0.2); }
+#startBtn:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
 
 /* три точки */
 .ellipsis {
   font-size: 2rem;
   opacity: 0;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.8s ease;
 }
-.ellipsis.show {
-  opacity: 1;
-}
+.ellipsis.show { opacity: 1; }
 </style>
 </head>
 <body class="dark">
 
 <div id="controls">
-  <button id="startBtn">Старт</button>
+  <button id="startBtn">▶ Старт</button>
 </div>
 
 <div id="stage">
@@ -169,10 +163,11 @@ function showCue(text, cueIndex){
   lyricsEl.innerHTML = '';
   const line = document.createElement('div');
   line.className = 'line';
-  text.split(' ').forEach((w,i)=>{
+  const words = text.split(' ');
+  words.forEach((w)=>{
     const span = document.createElement('span');
     span.className = 'word';
-    span.textContent = w + (i < text.length - 1 ? ' ' : '');
+    span.textContent = w;
     line.appendChild(span);
   });
   lyricsEl.appendChild(line);
@@ -185,8 +180,6 @@ function showCue(text, cueIndex){
   wordEls.forEach((we, i)=>{
     setTimeout(()=> we.classList.add('on'), i * 120);
   });
-
-  return 1800;
 }
 
 music.addEventListener('timeupdate', ()=>{
@@ -195,7 +188,9 @@ music.addEventListener('timeupdate', ()=>{
     showCue(cues[idx].text, idx);
     idx++;
     if(idx === cues.length){
-      setTimeout(()=> lyricsEl.innerHTML = '<div class="ellipsis show">…</div>', 2200);
+      setTimeout(()=> {
+        lyricsEl.innerHTML = '<div class="ellipsis show">••🤍••</div>';
+      }, 4000); // 4 секунды до появления "..."
     }
   }
 });
