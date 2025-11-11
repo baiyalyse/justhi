@@ -1,75 +1,1456 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Press F</title>
-  <style>
-    body {
-    	
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      color: #2c2c2c;
-      background: linear-gradient(120deg, #d4fc79, #96e6a1, #a1c4fd, #c2e9fb);
-      background-size: 400% 400%;
-      animation: gradientMove 12s ease infinite;
-      text-align: center;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lyrics — Stage Light (B/W)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
 
-    @keyframes gradientMove {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
+  :root{
+    --bg-dark: #000;
+    --fg-dark: #fff;
+    --bg-light: #fff;
+    --fg-light: #000;
+    --spot-opacity-default: 0.08;
+    --spot-opacity-strong: 0.9;
+  }
 
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 30px;
-      text-shadow: 1px 1px 4px rgba(0,0,0,0.1);
-    }
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg-dark);
+    color:var(--fg-dark);
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    transition: background 220ms ease, color 220ms ease;
+  }
 
-    .btn {
-      background: #ffffffcc;
-      padding: 15px 40px;
-      border-radius: 12px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      text-decoration: none;
-      color: #333;
-      border: none;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
+  /* stage with subtle spotlight */
+  #stage{
+    position:relative;
+    width:100%;
+    max-width:1100px;
+    padding:2rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
 
-    .btn:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      background: #fefefe;
-    }
+  /* radial spotlight overlay (subtle) */
+  #stage::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 22%, rgba(255,255,255,0.02) 50%, transparent 100%);
+    mix-blend-mode: screen;
+    transition: opacity 220ms ease, transform 420ms ease;
+    opacity: var(--spot-opacity-default);
+    transform: scale(0.98);
+    border-radius:12px;
+  }
 
-    @media (max-width: 600px) {
-      h1 {
-        font-size: 1.8rem;
-      }
+  /* cinematic grain (very subtle) */
+  #stage::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.01) 1px, rgba(0,0,0,0) 1px),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="black" opacity="0.02"/></svg>');
+    background-size:100% 3px, 2px 2px;
+    mix-blend-mode: overlay;
+    pointer-events:none;
+    opacity:0.32;
+  }
 
-      .btn {
-        font-size: 1rem;
-        padding: 12px 30px;
-      }
-    }
-  </style>
+  /* text container */
+  #lyrics{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    font-size:clamp(1.8rem, 4.5vw, 3.4rem);
+    line-height:1.05;
+    letter-spacing:0.6px;
+    padding:1rem 2rem;
+    pointer-events:none;
+  }
+
+  .line{
+    display:block;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 260ms ease, transform 260ms ease;
+    will-change:opacity, transform;
+    user-select:none;
+    position:relative;
+  }
+
+  .word{
+    display:inline-block;
+    opacity:0;
+    transform: translateY(4px) scale(0.98);
+    transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.9,.2,1), filter 200ms;
+    filter: drop-shadow(0 0 0 rgba(255,255,255,0));
+    margin:0 .28ch;
+    color: inherit;
+  }
+
+  /* active word: clear white (or black when background inverted) */
+  .word.on{
+    opacity:1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 12px 28px rgba(255,255,255,0.04)) brightness(1.03);
+  }
+
+  /* active line overall */
+  .line.active{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* B/W classes on body to control background/text color */
+  body.dark{
+    background: var(--bg-dark);
+    color: var(--fg-dark);
+  }
+  body.light{
+    background: var(--bg-light);
+    color: var(--fg-light);
+  }
+
+  /* make spotlight stronger when light background (gives that stage flash feel) */
+  body.light #stage::before{ opacity: var(--spot-opacity-strong); transform: scale(1.03); }
+  body.dark #stage::before { opacity: var(--spot-opacity-default); transform: scale(0.98); }
+
+  /* start button */
+  #controls{
+    position: absolute;
+    top:18px;
+    left:18px;
+    z-index:10;
+  }
+  #startBtn{
+    padding:10px 14px;
+    border-radius:8px;
+    border:none;
+    background:rgba(255,255,255,0.08);
+    color:inherit;
+    font-weight:700;
+    cursor:pointer;
+    backdrop-filter: blur(6px);
+  }
+  #startBtn:active{ transform:translateY(1px); }
+
+  /* ellipsis end */
+  .ellipsis{
+    font-size:1.4rem;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 300ms, transform 300ms;
+  }
+  .ellipsis.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  @media (max-width:480px){
+    #lyrics{ font-size: clamp(1.2rem,5vw,1.8rem); padding:0 12px;}
+  }
+</style>
 </head>
-<body>
-  <h1>Сәлеееем!</h1>
-  <a href="https://t.me/rumjiru?text=Привет" target="_blank" class="btn">
-    Сәлем, как ты?
-  </a>
+<body class="dark">
+
+<div id="controls">
+  <button id="startBtn">Старт</button>
+</div>
+
+<div id="stage">
+  <div id="lyrics" aria-live="polite"></div>
+</div>
+
+<audio id="music" src="/storage/emulated/0/Music/AyuGram/music.mp3" preload="auto"></audio>
+
+<script>
+/* Чётко прописанные таймкоды и текст */
+const cues = [
+  {time:39, text: "Сүйем десем, сенесің бе?"},
+  {time:40, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:44, text: "«Жаным» десем сенесің бе?"},
+  {time:46, text: "Сен менің жалғызымсың, сезесің бе?"},
+  {time:50, text: "Сүйем десем, сенесің бе?"},
+  {time:53, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:56, text: "«Жаным» десем сенесің бе?"},
+  {time:59, text: "Сен менің жалғызымсың, сезесің бе?"}
+];
+
+const lyricsEl = document.getElementById('lyrics');
+const music = document.getElementById('music');
+const startBtn = document.getElementById('startBtn');
+
+let idx = 0;
+let running = false;
+
+/* Показ одной подсвечиваемой строки */
+function showCue(text, cueIndex){
+  // Очистка
+  lyricsEl.innerHTML = '';
+  // Создаём строку
+  const line = document.createElement('div');
+  line.className = 'line';
+  // Разбиваем на слова и оборачиваем
+  const words = text.split(' ');
+  words.forEach((w,i)=>{
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w + (i < words.length - 1 ? ' ' : '');
+    line.appendChild(span);
+  });
+  lyricsEl.appendChild(line);
+
+  // Переключаем фон: ч/б по очереди (как раньше)
+  // если cueIndex чётный — делаем light (белый фон), иначе dark (чёрный фон)
+  if(cueIndex % 2 === 0){
+    document.body.classList.remove('dark');
+    document.body.classList.add('light');
+  } else {
+    document.body.classList.remove('light');
+    document.body.classList.add('dark');
+  }
+
+  // Небольшая кинематографическая «вспышка» spotlight увеличивается плавно
+  // (handled by CSS via body.light / body.dark rules)
+
+  // Плавное появление строки
+  requestAnimationFrame(()=> line.classList.add('active'));
+
+  // По-словная подсветка: белый (или чёрный) — нужно, чтобы на светлом фоне текст был чёрный (color: inherit)
+  const wordEls = line.querySelectorAll('.word');
+  const baseDelay = 160; // скорость появления слов (мс)
+  let totalDelay = 0;
+  wordEls.forEach((we, wi)=>{
+    const delay = baseDelay + (wi * 90) * (wi > 0 ? 1 : 0); // небольшой рост задержки
+    setTimeout(()=> we.classList.add('on'), totalDelay);
+    totalDelay += delay;
+  });
+
+  // Возвращаем время, сколько держать эффект (чтобы показать ellipsis позже)
+  // Обрезаем минимальную длительность
+  const totalMs = Math.max(900, totalDelay + 400);
+  return totalMs;
+}
+
+/* Синхронизация по timeupdate */
+music.addEventListener('timeupdate', ()=>{
+  if(!running) return;
+  if(idx >= cues.length) return;
+  const current = cues[idx];
+  if(music.currentTime >= current.time){
+    const ms = showCue(current.text, idx);
+    idx++;
+    // если это последняя — показываем три точки после паузы
+    if(idx === cues.length){
+      setTimeout(()=>{
+        lyricsEl.innerHTML = '<div class="ellipsis show">…</div>';
+      }, ms + 350);
+    }
+  }
+});
+
+/* Старт */
+startBtn.addEventListener('click', ()=>{
+  if(running) return;
+  // перестраховка: сброс индекса и включение
+  idx = 0;
+  running = true;
+  // установить позицию старта
+  music.currentTime = 39;
+  music.play().catch(()=>{ /* в некоторых браузерах нужен пользовательский жест — кнопка это обеспечивает */ });
+  startBtn.style.display = 'none';
+});
+
+/* Вспомогательное: если пользователь перемотал — корректируем индекс */
+music.addEventListener('seeked', ()=>{
+  if(!running) return;
+  // пересчитать индекс по текущему времени
+  const t = music.currentTime;
+  idx = cues.findIndex(c => c.time > t);
+  if(idx === -1) idx = cues.length;
+});
+
+/* Если музыка закончилась или остановлена — оставить тексты как есть (ничего не перезапускаем) */
+music.addEventListener('ended', ()=>{
+  running = false;
+});
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lyrics — Stage Light (B/W)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
+
+  :root{
+    --bg-dark: #000;
+    --fg-dark: #fff;
+    --bg-light: #fff;
+    --fg-light: #000;
+    --spot-opacity-default: 0.08;
+    --spot-opacity-strong: 0.9;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg-dark);
+    color:var(--fg-dark);
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    transition: background 220ms ease, color 220ms ease;
+  }
+
+  /* stage with subtle spotlight */
+  #stage{
+    position:relative;
+    width:100%;
+    max-width:1100px;
+    padding:2rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+
+  /* radial spotlight overlay (subtle) */
+  #stage::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 22%, rgba(255,255,255,0.02) 50%, transparent 100%);
+    mix-blend-mode: screen;
+    transition: opacity 220ms ease, transform 420ms ease;
+    opacity: var(--spot-opacity-default);
+    transform: scale(0.98);
+    border-radius:12px;
+  }
+
+  /* cinematic grain (very subtle) */
+  #stage::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.01) 1px, rgba(0,0,0,0) 1px),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="black" opacity="0.02"/></svg>');
+    background-size:100% 3px, 2px 2px;
+    mix-blend-mode: overlay;
+    pointer-events:none;
+    opacity:0.32;
+  }
+
+  /* text container */
+  #lyrics{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    font-size:clamp(1.8rem, 4.5vw, 3.4rem);
+    line-height:1.05;
+    letter-spacing:0.6px;
+    padding:1rem 2rem;
+    pointer-events:none;
+  }
+
+  .line{
+    display:block;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 260ms ease, transform 260ms ease;
+    will-change:opacity, transform;
+    user-select:none;
+    position:relative;
+  }
+
+  .word{
+    display:inline-block;
+    opacity:0;
+    transform: translateY(4px) scale(0.98);
+    transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.9,.2,1), filter 200ms;
+    filter: drop-shadow(0 0 0 rgba(255,255,255,0));
+    margin:0 .28ch;
+    color: inherit;
+  }
+
+  /* active word: clear white (or black when background inverted) */
+  .word.on{
+    opacity:1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 12px 28px rgba(255,255,255,0.04)) brightness(1.03);
+  }
+
+  /* active line overall */
+  .line.active{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* B/W classes on body to control background/text color */
+  body.dark{
+    background: var(--bg-dark);
+    color: var(--fg-dark);
+  }
+  body.light{
+    background: var(--bg-light);
+    color: var(--fg-light);
+  }
+
+  /* make spotlight stronger when light background (gives that stage flash feel) */
+  body.light #stage::before{ opacity: var(--spot-opacity-strong); transform: scale(1.03); }
+  body.dark #stage::before { opacity: var(--spot-opacity-default); transform: scale(0.98); }
+
+  /* start button */
+  #controls{
+    position: absolute;
+    top:18px;
+    left:18px;
+    z-index:10;
+  }
+  #startBtn{
+    padding:10px 14px;
+    border-radius:8px;
+    border:none;
+    background:rgba(255,255,255,0.08);
+    color:inherit;
+    font-weight:700;
+    cursor:pointer;
+    backdrop-filter: blur(6px);
+  }
+  #startBtn:active{ transform:translateY(1px); }
+
+  /* ellipsis end */
+  .ellipsis{
+    font-size:1.4rem;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 300ms, transform 300ms;
+  }
+  .ellipsis.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  @media (max-width:480px){
+    #lyrics{ font-size: clamp(1.2rem,5vw,1.8rem); padding:0 12px;}
+  }
+</style>
+</head>
+<body class="dark">
+
+<div id="controls">
+  <button id="startBtn">Старт</button>
+</div>
+
+<div id="stage">
+  <div id="lyrics" aria-live="polite"></div>
+</div>
+
+<audio id="music" src="/storage/emulated/0/Music/AyuGram/music.mp3" preload="auto"></audio>
+
+<script>
+/* Чётко прописанные таймкоды и текст */
+const cues = [
+  {time:39, text: "Сүйем десем, сенесің бе?"},
+  {time:40, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:44, text: "«Жаным» десем сенесің бе?"},
+  {time:46, text: "Сен менің жалғызымсың, сезесің бе?"},
+  {time:50, text: "Сүйем десем, сенесің бе?"},
+  {time:53, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:56, text: "«Жаным» десем сенесің бе?"},
+  {time:59, text: "Сен менің жалғызымсың, сезесің бе?"}
+];
+
+const lyricsEl = document.getElementById('lyrics');
+const music = document.getElementById('music');
+const startBtn = document.getElementById('startBtn');
+
+let idx = 0;
+let running = false;
+
+/* Показ одной подсвечиваемой строки */
+function showCue(text, cueIndex){
+  // Очистка
+  lyricsEl.innerHTML = '';
+  // Создаём строку
+  const line = document.createElement('div');
+  line.className = 'line';
+  // Разбиваем на слова и оборачиваем
+  const words = text.split(' ');
+  words.forEach((w,i)=>{
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w + (i < words.length - 1 ? ' ' : '');
+    line.appendChild(span);
+  });
+  lyricsEl.appendChild(line);
+
+  // Переключаем фон: ч/б по очереди (как раньше)
+  // если cueIndex чётный — делаем light (белый фон), иначе dark (чёрный фон)
+  if(cueIndex % 2 === 0){
+    document.body.classList.remove('dark');
+    document.body.classList.add('light');
+  } else {
+    document.body.classList.remove('light');
+    document.body.classList.add('dark');
+  }
+
+  // Небольшая кинематографическая «вспышка» spotlight увеличивается плавно
+  // (handled by CSS via body.light / body.dark rules)
+
+  // Плавное появление строки
+  requestAnimationFrame(()=> line.classList.add('active'));
+
+  // По-словная подсветка: белый (или чёрный) — нужно, чтобы на светлом фоне текст был чёрный (color: inherit)
+  const wordEls = line.querySelectorAll('.word');
+  const baseDelay = 160; // скорость появления слов (мс)
+  let totalDelay = 0;
+  wordEls.forEach((we, wi)=>{
+    const delay = baseDelay + (wi * 90) * (wi > 0 ? 1 : 0); // небольшой рост задержки
+    setTimeout(()=> we.classList.add('on'), totalDelay);
+    totalDelay += delay;
+  });
+
+  // Возвращаем время, сколько держать эффект (чтобы показать ellipsis позже)
+  // Обрезаем минимальную длительность
+  const totalMs = Math.max(900, totalDelay + 400);
+  return totalMs;
+}
+
+/* Синхронизация по timeupdate */
+music.addEventListener('timeupdate', ()=>{
+  if(!running) return;
+  if(idx >= cues.length) return;
+  const current = cues[idx];
+  if(music.currentTime >= current.time){
+    const ms = showCue(current.text, idx);
+    idx++;
+    // если это последняя — показываем три точки после паузы
+    if(idx === cues.length){
+      setTimeout(()=>{
+        lyricsEl.innerHTML = '<div class="ellipsis show">…</div>';
+      }, ms + 350);
+    }
+  }
+});
+
+/* Старт */
+startBtn.addEventListener('click', ()=>{
+  if(running) return;
+  // перестраховка: сброс индекса и включение
+  idx = 0;
+  running = true;
+  // установить позицию старта
+  music.currentTime = 39;
+  music.play().catch(()=>{ /* в некоторых браузерах нужен пользовательский жест — кнопка это обеспечивает */ });
+  startBtn.style.display = 'none';
+});
+
+/* Вспомогательное: если пользователь перемотал — корректируем индекс */
+music.addEventListener('seeked', ()=>{
+  if(!running) return;
+  // пересчитать индекс по текущему времени
+  const t = music.currentTime;
+  idx = cues.findIndex(c => c.time > t);
+  if(idx === -1) idx = cues.length;
+});
+
+/* Если музыка закончилась или остановлена — оставить тексты как есть (ничего не перезапускаем) */
+music.addEventListener('ended', ()=>{
+  running = false;
+});
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lyrics — Stage Light (B/W)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
+
+  :root{
+    --bg-dark: #000;
+    --fg-dark: #fff;
+    --bg-light: #fff;
+    --fg-light: #000;
+    --spot-opacity-default: 0.08;
+    --spot-opacity-strong: 0.9;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg-dark);
+    color:var(--fg-dark);
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    transition: background 220ms ease, color 220ms ease;
+  }
+
+  /* stage with subtle spotlight */
+  #stage{
+    position:relative;
+    width:100%;
+    max-width:1100px;
+    padding:2rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+
+  /* radial spotlight overlay (subtle) */
+  #stage::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 22%, rgba(255,255,255,0.02) 50%, transparent 100%);
+    mix-blend-mode: screen;
+    transition: opacity 220ms ease, transform 420ms ease;
+    opacity: var(--spot-opacity-default);
+    transform: scale(0.98);
+    border-radius:12px;
+  }
+
+  /* cinematic grain (very subtle) */
+  #stage::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.01) 1px, rgba(0,0,0,0) 1px),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="black" opacity="0.02"/></svg>');
+    background-size:100% 3px, 2px 2px;
+    mix-blend-mode: overlay;
+    pointer-events:none;
+    opacity:0.32;
+  }
+
+  /* text container */
+  #lyrics{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    font-size:clamp(1.8rem, 4.5vw, 3.4rem);
+    line-height:1.05;
+    letter-spacing:0.6px;
+    padding:1rem 2rem;
+    pointer-events:none;
+  }
+
+  .line{
+    display:block;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 260ms ease, transform 260ms ease;
+    will-change:opacity, transform;
+    user-select:none;
+    position:relative;
+  }
+
+  .word{
+    display:inline-block;
+    opacity:0;
+    transform: translateY(4px) scale(0.98);
+    transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.9,.2,1), filter 200ms;
+    filter: drop-shadow(0 0 0 rgba(255,255,255,0));
+    margin:0 .28ch;
+    color: inherit;
+  }
+
+  /* active word: clear white (or black when background inverted) */
+  .word.on{
+    opacity:1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 12px 28px rgba(255,255,255,0.04)) brightness(1.03);
+  }
+
+  /* active line overall */
+  .line.active{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* B/W classes on body to control background/text color */
+  body.dark{
+    background: var(--bg-dark);
+    color: var(--fg-dark);
+  }
+  body.light{
+    background: var(--bg-light);
+    color: var(--fg-light);
+  }
+
+  /* make spotlight stronger when light background (gives that stage flash feel) */
+  body.light #stage::before{ opacity: var(--spot-opacity-strong); transform: scale(1.03); }
+  body.dark #stage::before { opacity: var(--spot-opacity-default); transform: scale(0.98); }
+
+  /* start button */
+  #controls{
+    position: absolute;
+    top:18px;
+    left:18px;
+    z-index:10;
+  }
+  #startBtn{
+    padding:10px 14px;
+    border-radius:8px;
+    border:none;
+    background:rgba(255,255,255,0.08);
+    color:inherit;
+    font-weight:700;
+    cursor:pointer;
+    backdrop-filter: blur(6px);
+  }
+  #startBtn:active{ transform:translateY(1px); }
+
+  /* ellipsis end */
+  .ellipsis{
+    font-size:1.4rem;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 300ms, transform 300ms;
+  }
+  .ellipsis.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  @media (max-width:480px){
+    #lyrics{ font-size: clamp(1.2rem,5vw,1.8rem); padding:0 12px;}
+  }
+</style>
+</head>
+<body class="dark">
+
+<div id="controls">
+  <button id="startBtn">Старт</button>
+</div>
+
+<div id="stage">
+  <div id="lyrics" aria-live="polite"></div>
+</div>
+
+<audio id="music" src="/storage/emulated/0/Music/AyuGram/music.mp3" preload="auto"></audio>
+
+<script>
+/* Чётко прописанные таймкоды и текст */
+const cues = [
+  {time:39, text: "Сүйем десем, сенесің бе?"},
+  {time:40, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:44, text: "«Жаным» десем сенесің бе?"},
+  {time:46, text: "Сен менің жалғызымсың, сезесің бе?"},
+  {time:50, text: "Сүйем десем, сенесің бе?"},
+  {time:53, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:56, text: "«Жаным» десем сенесің бе?"},
+  {time:59, text: "Сен менің жалғызымсың, сезесің бе?"}
+];
+
+const lyricsEl = document.getElementById('lyrics');
+const music = document.getElementById('music');
+const startBtn = document.getElementById('startBtn');
+
+let idx = 0;
+let running = false;
+
+/* Показ одной подсвечиваемой строки */
+function showCue(text, cueIndex){
+  // Очистка
+  lyricsEl.innerHTML = '';
+  // Создаём строку
+  const line = document.createElement('div');
+  line.className = 'line';
+  // Разбиваем на слова и оборачиваем
+  const words = text.split(' ');
+  words.forEach((w,i)=>{
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w + (i < words.length - 1 ? ' ' : '');
+    line.appendChild(span);
+  });
+  lyricsEl.appendChild(line);
+
+  // Переключаем фон: ч/б по очереди (как раньше)
+  // если cueIndex чётный — делаем light (белый фон), иначе dark (чёрный фон)
+  if(cueIndex % 2 === 0){
+    document.body.classList.remove('dark');
+    document.body.classList.add('light');
+  } else {
+    document.body.classList.remove('light');
+    document.body.classList.add('dark');
+  }
+
+  // Небольшая кинематографическая «вспышка» spotlight увеличивается плавно
+  // (handled by CSS via body.light / body.dark rules)
+
+  // Плавное появление строки
+  requestAnimationFrame(()=> line.classList.add('active'));
+
+  // По-словная подсветка: белый (или чёрный) — нужно, чтобы на светлом фоне текст был чёрный (color: inherit)
+  const wordEls = line.querySelectorAll('.word');
+  const baseDelay = 160; // скорость появления слов (мс)
+  let totalDelay = 0;
+  wordEls.forEach((we, wi)=>{
+    const delay = baseDelay + (wi * 90) * (wi > 0 ? 1 : 0); // небольшой рост задержки
+    setTimeout(()=> we.classList.add('on'), totalDelay);
+    totalDelay += delay;
+  });
+
+  // Возвращаем время, сколько держать эффект (чтобы показать ellipsis позже)
+  // Обрезаем минимальную длительность
+  const totalMs = Math.max(900, totalDelay + 400);
+  return totalMs;
+}
+
+/* Синхронизация по timeupdate */
+music.addEventListener('timeupdate', ()=>{
+  if(!running) return;
+  if(idx >= cues.length) return;
+  const current = cues[idx];
+  if(music.currentTime >= current.time){
+    const ms = showCue(current.text, idx);
+    idx++;
+    // если это последняя — показываем три точки после паузы
+    if(idx === cues.length){
+      setTimeout(()=>{
+        lyricsEl.innerHTML = '<div class="ellipsis show">…</div>';
+      }, ms + 350);
+    }
+  }
+});
+
+/* Старт */
+startBtn.addEventListener('click', ()=>{
+  if(running) return;
+  // перестраховка: сброс индекса и включение
+  idx = 0;
+  running = true;
+  // установить позицию старта
+  music.currentTime = 39;
+  music.play().catch(()=>{ /* в некоторых браузерах нужен пользовательский жест — кнопка это обеспечивает */ });
+  startBtn.style.display = 'none';
+});
+
+/* Вспомогательное: если пользователь перемотал — корректируем индекс */
+music.addEventListener('seeked', ()=>{
+  if(!running) return;
+  // пересчитать индекс по текущему времени
+  const t = music.currentTime;
+  idx = cues.findIndex(c => c.time > t);
+  if(idx === -1) idx = cues.length;
+});
+
+/* Если музыка закончилась или остановлена — оставить тексты как есть (ничего не перезапускаем) */
+music.addEventListener('ended', ()=>{
+  running = false;
+});
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lyrics — Stage Light (B/W)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
+
+  :root{
+    --bg-dark: #000;
+    --fg-dark: #fff;
+    --bg-light: #fff;
+    --fg-light: #000;
+    --spot-opacity-default: 0.08;
+    --spot-opacity-strong: 0.9;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg-dark);
+    color:var(--fg-dark);
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    transition: background 220ms ease, color 220ms ease;
+  }
+
+  /* stage with subtle spotlight */
+  #stage{
+    position:relative;
+    width:100%;
+    max-width:1100px;
+    padding:2rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+
+  /* radial spotlight overlay (subtle) */
+  #stage::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 22%, rgba(255,255,255,0.02) 50%, transparent 100%);
+    mix-blend-mode: screen;
+    transition: opacity 220ms ease, transform 420ms ease;
+    opacity: var(--spot-opacity-default);
+    transform: scale(0.98);
+    border-radius:12px;
+  }
+
+  /* cinematic grain (very subtle) */
+  #stage::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.01) 1px, rgba(0,0,0,0) 1px),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="black" opacity="0.02"/></svg>');
+    background-size:100% 3px, 2px 2px;
+    mix-blend-mode: overlay;
+    pointer-events:none;
+    opacity:0.32;
+  }
+
+  /* text container */
+  #lyrics{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    font-size:clamp(1.8rem, 4.5vw, 3.4rem);
+    line-height:1.05;
+    letter-spacing:0.6px;
+    padding:1rem 2rem;
+    pointer-events:none;
+  }
+
+  .line{
+    display:block;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 260ms ease, transform 260ms ease;
+    will-change:opacity, transform;
+    user-select:none;
+    position:relative;
+  }
+
+  .word{
+    display:inline-block;
+    opacity:0;
+    transform: translateY(4px) scale(0.98);
+    transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.9,.2,1), filter 200ms;
+    filter: drop-shadow(0 0 0 rgba(255,255,255,0));
+    margin:0 .28ch;
+    color: inherit;
+  }
+
+  /* active word: clear white (or black when background inverted) */
+  .word.on{
+    opacity:1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 12px 28px rgba(255,255,255,0.04)) brightness(1.03);
+  }
+
+  /* active line overall */
+  .line.active{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* B/W classes on body to control background/text color */
+  body.dark{
+    background: var(--bg-dark);
+    color: var(--fg-dark);
+  }
+  body.light{
+    background: var(--bg-light);
+    color: var(--fg-light);
+  }
+
+  /* make spotlight stronger when light background (gives that stage flash feel) */
+  body.light #stage::before{ opacity: var(--spot-opacity-strong); transform: scale(1.03); }
+  body.dark #stage::before { opacity: var(--spot-opacity-default); transform: scale(0.98); }
+
+  /* start button */
+  #controls{
+    position: absolute;
+    top:18px;
+    left:18px;
+    z-index:10;
+  }
+  #startBtn{
+    padding:10px 14px;
+    border-radius:8px;
+    border:none;
+    background:rgba(255,255,255,0.08);
+    color:inherit;
+    font-weight:700;
+    cursor:pointer;
+    backdrop-filter: blur(6px);
+  }
+  #startBtn:active{ transform:translateY(1px); }
+
+  /* ellipsis end */
+  .ellipsis{
+    font-size:1.4rem;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 300ms, transform 300ms;
+  }
+  .ellipsis.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  @media (max-width:480px){
+    #lyrics{ font-size: clamp(1.2rem,5vw,1.8rem); padding:0 12px;}
+  }
+</style>
+</head>
+<body class="dark">
+
+<div id="controls">
+  <button id="startBtn">Старт</button>
+</div>
+
+<div id="stage">
+  <div id="lyrics" aria-live="polite"></div>
+</div>
+
+<audio id="music" src="/storage/emulated/0/Music/AyuGram/music.mp3" preload="auto"></audio>
+
+<script>
+/* Чётко прописанные таймкоды и текст */
+const cues = [
+  {time:39, text: "Сүйем десем, сенесің бе?"},
+  {time:40, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:44, text: "«Жаным» десем сенесің бе?"},
+  {time:46, text: "Сен менің жалғызымсың, сезесің бе?"},
+  {time:50, text: "Сүйем десем, сенесің бе?"},
+  {time:53, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:56, text: "«Жаным» десем сенесің бе?"},
+  {time:59, text: "Сен менің жалғызымсың, сезесің бе?"}
+];
+
+const lyricsEl = document.getElementById('lyrics');
+const music = document.getElementById('music');
+const startBtn = document.getElementById('startBtn');
+
+let idx = 0;
+let running = false;
+
+/* Показ одной подсвечиваемой строки */
+function showCue(text, cueIndex){
+  // Очистка
+  lyricsEl.innerHTML = '';
+  // Создаём строку
+  const line = document.createElement('div');
+  line.className = 'line';
+  // Разбиваем на слова и оборачиваем
+  const words = text.split(' ');
+  words.forEach((w,i)=>{
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w + (i < words.length - 1 ? ' ' : '');
+    line.appendChild(span);
+  });
+  lyricsEl.appendChild(line);
+
+  // Переключаем фон: ч/б по очереди (как раньше)
+  // если cueIndex чётный — делаем light (белый фон), иначе dark (чёрный фон)
+  if(cueIndex % 2 === 0){
+    document.body.classList.remove('dark');
+    document.body.classList.add('light');
+  } else {
+    document.body.classList.remove('light');
+    document.body.classList.add('dark');
+  }
+
+  // Небольшая кинематографическая «вспышка» spotlight увеличивается плавно
+  // (handled by CSS via body.light / body.dark rules)
+
+  // Плавное появление строки
+  requestAnimationFrame(()=> line.classList.add('active'));
+
+  // По-словная подсветка: белый (или чёрный) — нужно, чтобы на светлом фоне текст был чёрный (color: inherit)
+  const wordEls = line.querySelectorAll('.word');
+  const baseDelay = 160; // скорость появления слов (мс)
+  let totalDelay = 0;
+  wordEls.forEach((we, wi)=>{
+    const delay = baseDelay + (wi * 90) * (wi > 0 ? 1 : 0); // небольшой рост задержки
+    setTimeout(()=> we.classList.add('on'), totalDelay);
+    totalDelay += delay;
+  });
+
+  // Возвращаем время, сколько держать эффект (чтобы показать ellipsis позже)
+  // Обрезаем минимальную длительность
+  const totalMs = Math.max(900, totalDelay + 400);
+  return totalMs;
+}
+
+/* Синхронизация по timeupdate */
+music.addEventListener('timeupdate', ()=>{
+  if(!running) return;
+  if(idx >= cues.length) return;
+  const current = cues[idx];
+  if(music.currentTime >= current.time){
+    const ms = showCue(current.text, idx);
+    idx++;
+    // если это последняя — показываем три точки после паузы
+    if(idx === cues.length){
+      setTimeout(()=>{
+        lyricsEl.innerHTML = '<div class="ellipsis show">…</div>';
+      }, ms + 350);
+    }
+  }
+});
+
+/* Старт */
+startBtn.addEventListener('click', ()=>{
+  if(running) return;
+  // перестраховка: сброс индекса и включение
+  idx = 0;
+  running = true;
+  // установить позицию старта
+  music.currentTime = 39;
+  music.play().catch(()=>{ /* в некоторых браузерах нужен пользовательский жест — кнопка это обеспечивает */ });
+  startBtn.style.display = 'none';
+});
+
+/* Вспомогательное: если пользователь перемотал — корректируем индекс */
+music.addEventListener('seeked', ()=>{
+  if(!running) return;
+  // пересчитать индекс по текущему времени
+  const t = music.currentTime;
+  idx = cues.findIndex(c => c.time > t);
+  if(idx === -1) idx = cues.length;
+});
+
+/* Если музыка закончилась или остановлена — оставить тексты как есть (ничего не перезапускаем) */
+music.addEventListener('ended', ()=>{
+  running = false;
+});
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lyrics — Stage Light (B/W)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
+
+  :root{
+    --bg-dark: #000;
+    --fg-dark: #fff;
+    --bg-light: #fff;
+    --fg-light: #000;
+    --spot-opacity-default: 0.08;
+    --spot-opacity-strong: 0.9;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg-dark);
+    color:var(--fg-dark);
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    transition: background 220ms ease, color 220ms ease;
+  }
+
+  /* stage with subtle spotlight */
+  #stage{
+    position:relative;
+    width:100%;
+    max-width:1100px;
+    padding:2rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+
+  /* radial spotlight overlay (subtle) */
+  #stage::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 22%, rgba(255,255,255,0.02) 50%, transparent 100%);
+    mix-blend-mode: screen;
+    transition: opacity 220ms ease, transform 420ms ease;
+    opacity: var(--spot-opacity-default);
+    transform: scale(0.98);
+    border-radius:12px;
+  }
+
+  /* cinematic grain (very subtle) */
+  #stage::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.01) 1px, rgba(0,0,0,0) 1px),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="black" opacity="0.02"/></svg>');
+    background-size:100% 3px, 2px 2px;
+    mix-blend-mode: overlay;
+    pointer-events:none;
+    opacity:0.32;
+  }
+
+  /* text container */
+  #lyrics{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    font-size:clamp(1.8rem, 4.5vw, 3.4rem);
+    line-height:1.05;
+    letter-spacing:0.6px;
+    padding:1rem 2rem;
+    pointer-events:none;
+  }
+
+  .line{
+    display:block;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 260ms ease, transform 260ms ease;
+    will-change:opacity, transform;
+    user-select:none;
+    position:relative;
+  }
+
+  .word{
+    display:inline-block;
+    opacity:0;
+    transform: translateY(4px) scale(0.98);
+    transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.9,.2,1), filter 200ms;
+    filter: drop-shadow(0 0 0 rgba(255,255,255,0));
+    margin:0 .28ch;
+    color: inherit;
+  }
+
+  /* active word: clear white (or black when background inverted) */
+  .word.on{
+    opacity:1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 12px 28px rgba(255,255,255,0.04)) brightness(1.03);
+  }
+
+  /* active line overall */
+  .line.active{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* B/W classes on body to control background/text color */
+  body.dark{
+    background: var(--bg-dark);
+    color: var(--fg-dark);
+  }
+  body.light{
+    background: var(--bg-light);
+    color: var(--fg-light);
+  }
+
+  /* make spotlight stronger when light background (gives that stage flash feel) */
+  body.light #stage::before{ opacity: var(--spot-opacity-strong); transform: scale(1.03); }
+  body.dark #stage::before { opacity: var(--spot-opacity-default); transform: scale(0.98); }
+
+  /* start button */
+  #controls{
+    position: absolute;
+    top:18px;
+    left:18px;
+    z-index:10;
+  }
+  #startBtn{
+    padding:10px 14px;
+    border-radius:8px;
+    border:none;
+    background:rgba(255,255,255,0.08);
+    color:inherit;
+    font-weight:700;
+    cursor:pointer;
+    backdrop-filter: blur(6px);
+  }
+  #startBtn:active{ transform:translateY(1px); }
+
+  /* ellipsis end */
+  .ellipsis{
+    font-size:1.4rem;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 300ms, transform 300ms;
+  }
+  .ellipsis.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  @media (max-width:480px){
+    #lyrics{ font-size: clamp(1.2rem,5vw,1.8rem); padding:0 12px;}
+  }
+</style>
+</head>
+<body class="dark">
+
+<div id="controls">
+  <button id="startBtn">Старт</button>
+</div>
+
+<div id="stage">
+  <div id="lyrics" aria-live="polite"></div>
+</div>
+
+<audio id="music" src="/storage/emulated/0/Music/AyuGram/music.mp3" preload="auto"></audio>
+
+<script>
+/* Чётко прописанные таймкоды и текст */
+const cues = [
+  {time:39, text: "Сүйем десем, сенесің бе?"},
+  {time:40, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:44, text: "«Жаным» десем сенесің бе?"},
+  {time:46, text: "Сен менің жалғызымсың, сезесің бе?"},
+  {time:50, text: "Сүйем десем, сенесің бе?"},
+  {time:53, text: "Жолда тұрған кедергімді женесің бе?"},
+  {time:56, text: "«Жаным» десем сенесің бе?"},
+  {time:59, text: "Сен менің жалғызымсың, сезесің бе?"}
+];
+
+const lyricsEl = document.getElementById('lyrics');
+const music = document.getElementById('music');
+const startBtn = document.getElementById('startBtn');
+
+let idx = 0;
+let running = false;
+
+/* Показ одной подсвечиваемой строки */
+function showCue(text, cueIndex){
+  // Очистка
+  lyricsEl.innerHTML = '';
+  // Создаём строку
+  const line = document.createElement('div');
+  line.className = 'line';
+  // Разбиваем на слова и оборачиваем
+  const words = text.split(' ');
+  words.forEach((w,i)=>{
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w + (i < words.length - 1 ? ' ' : '');
+    line.appendChild(span);
+  });
+  lyricsEl.appendChild(line);
+
+  // Переключаем фон: ч/б по очереди (как раньше)
+  // если cueIndex чётный — делаем light (белый фон), иначе dark (чёрный фон)
+  if(cueIndex % 2 === 0){
+    document.body.classList.remove('dark');
+    document.body.classList.add('light');
+  } else {
+    document.body.classList.remove('light');
+    document.body.classList.add('dark');
+  }
+
+  // Небольшая кинематографическая «вспышка» spotlight увеличивается плавно
+  // (handled by CSS via body.light / body.dark rules)
+
+  // Плавное появление строки
+  requestAnimationFrame(()=> line.classList.add('active'));
+
+  // По-словная подсветка: белый (или чёрный) — нужно, чтобы на светлом фоне текст был чёрный (color: inherit)
+  const wordEls = line.querySelectorAll('.word');
+  const baseDelay = 160; // скорость появления слов (мс)
+  let totalDelay = 0;
+  wordEls.forEach((we, wi)=>{
+    const delay = baseDelay + (wi * 90) * (wi > 0 ? 1 : 0); // небольшой рост задержки
+    setTimeout(()=> we.classList.add('on'), totalDelay);
+    totalDelay += delay;
+  });
+
+  // Возвращаем время, сколько держать эффект (чтобы показать ellipsis позже)
+  // Обрезаем минимальную длительность
+  const totalMs = Math.max(900, totalDelay + 400);
+  return totalMs;
+}
+
+/* Синхронизация по timeupdate */
+music.addEventListener('timeupdate', ()=>{
+  if(!running) return;
+  if(idx >= cues.length) return;
+  const current = cues[idx];
+  if(music.currentTime >= current.time){
+    const ms = showCue(current.text, idx);
+    idx++;
+    // если это последняя — показываем три точки после паузы
+    if(idx === cues.length){
+      setTimeout(()=>{
+        lyricsEl.innerHTML = '<div class="ellipsis show">…</div>';
+      }, ms + 350);
+    }
+  }
+});
+
+/* Старт */
+startBtn.addEventListener('click', ()=>{
+  if(running) return;
+  // перестраховка: сброс индекса и включение
+  idx = 0;
+  running = true;
+  // установить позицию старта
+  music.currentTime = 39;
+  music.play().catch(()=>{ /* в некоторых браузерах нужен пользовательский жест — кнопка это обеспечивает */ });
+  startBtn.style.display = 'none';
+});
+
+/* Вспомогательное: если пользователь перемотал — корректируем индекс */
+music.addEventListener('seeked', ()=>{
+  if(!running) return;
+  // пересчитать индекс по текущему времени
+  const t = music.currentTime;
+  idx = cues.findIndex(c => c.time > t);
+  if(idx === -1) idx = cues.length;
+});
+
+/* Если музыка закончилась или остановлена — оставить тексты как есть (ничего не перезапускаем) */
+music.addEventListener('ended', ()=>{
+  running = false;
+});
+</script>
 </body>
 </html>
